@@ -1,0 +1,2 @@
+﻿id;expectedVar;groups;variable 1;variable 2;variable 3;variable 4;variable 5;Variable 6;variable 7;variable 8
+1;15_CAST_VGTE_EXT_TITULAR=1;liabilities y creditCard;economicSector=3;businessBureauEvent = 45 o 47;businessBureauEventDesc = Cartera castigada o Dudoso recaudo;typeOfDebtor = 00;personIdNumber <> 009004061505 y (personIdNumber = 00860034594 o  00860003020);;;

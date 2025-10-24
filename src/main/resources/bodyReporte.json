@@ -1,0 +1,19 @@
+{
+
+    "user": "900406150",
+    "password": "44LEA",
+    "identifyingTrx": {
+        "requestUUID": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "dateTime": "2025-07-10T16:04:02-05:00",
+        "originatorChannelName": "BANCO COOMEVA",
+        "originatorChannelType": "42"    },
+    "identifyingUser": {
+        "person": {
+            "personId": {
+                "personIdNumber": "1143119834",
+                "personIdType": 1
+            },
+            "personLastName": "BARRIOS"
+        }
+    }
+}
