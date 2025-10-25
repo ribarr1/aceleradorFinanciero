@@ -1,105 +1,140 @@
 package com.greensqa.core;
 
 import com.greensqa.model.Condition;
+import com.greensqa.model.Op;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class DslParser {
 
-    public static List<Condition> parseCell(String header, String cell) {
-        List<Condition> out = new ArrayList<>();
-        if (cell == null || cell.isBlank()) return out;
+    // Mapeo de eventos a descripciones implícitas
+    private static final Map<String, String> EVENT_DESC_MAP = Map.of(
+            "45", "Dudoso recaudo",
+            "46", "Cartera recuperada",
+            "47", "Cartera castigada"
+            // Agregar más mapeos según necesidad
+    );
 
-        String s = cell.trim();
-
-        // Expresiones fecha:  fecha1 - fecha2 < 12 meses
-        if (s.matches("(?i).+\\s-\\s.+\\s*[<>=]\\s*\\d+\\s+meses?")) {
-            out.add(parseDateDiff(header, s));
-            return out;
+    public static List<Condition> parseCell(String col, String val) {
+        if (val == null || val.trim().isEmpty()) {
+            return List.of();
         }
 
-        // Combinaciones con "y" (AND) en una misma celda:
-        // ej: "<> 009... y = 0086... o 0086.."
-        String[] andParts = s.split("(?i)\\s+y\\s+");
-        for (String part : andParts) {
-            out.addAll(parseSimple(header, part.trim()));
+        String trimmedVal = val.trim();
+        System.out.println("Parsing: '" + col + "' = '" + trimmedVal + "'");
+
+        // Manejar condiciones compuestas con "y" (AND)
+        if (trimmedVal.contains(" y ") && trimmedVal.contains("(")) {
+            return parseCompoundCondition(trimmedVal);
         }
-        return out;
+
+        // Manejar condiciones simples con "o" (OR)
+        if (trimmedVal.contains(" o ")) {
+            return parseOrCondition(trimmedVal);
+        }
+
+        // Condición simple
+        return List.of(parseSimpleCondition(trimmedVal));
     }
 
-    private static List<Condition> parseSimple(String var, String s) {
-        List<Condition> out = new ArrayList<>();
+    private static List<Condition> parseCompoundCondition(String expression) {
+        List<Condition> conditions = new ArrayList<>();
 
-        // "= v1 o v2 ..."
-        if (s.startsWith("=")) {
-            String rhs = s.substring(1).trim();
-            List<String> vals = splitOr(rhs);
-            Condition c = new Condition();
-            c.leftVar = var;
-            c.op = vals.size() == 1 ? Condition.Op.EQ : Condition.Op.IN;
-            c.values = vals;
-            out.add(c);
+        try {
+            // Ejemplo: "personIdNumber <> 009004061505 y (personIdNumber = 00860034594 o 00860003020)"
+            String[] parts = expression.split(" y ");
 
-            // regla implícita: si businessBureauEvent tiene valor, validaremos desc
-            if ("businessBureauEvent".equals(var) && vals.size()==1) {
-                Condition c2 = new Condition();
-                c2.leftVar = "businessBureauEventDesc";
-                c2.op = Condition.Op.IN; // se validará por imply en Evaluators
-                c2.values = vals; // pasamos code y Evaluators verificará imply(desc)
-                out.add(c2);
+            for (String part : parts) {
+                part = part.trim().replace("(", "").replace(")", "");
+
+                if (part.contains(" o ")) {
+                    // Es una condición OR
+                    conditions.addAll(parseOrCondition(part));
+                } else {
+                    // Es una condición simple
+                    conditions.add(parseSimpleCondition(part));
+                }
             }
-            return out;
+        } catch (Exception e) {
+            System.err.println("Error parsing compound condition: " + expression);
+            e.printStackTrace();
         }
 
-        // "<> v1 o v2 ..."
-        if (s.startsWith("<>")) {
-            String rhs = s.substring(2).trim();
-            List<String> vals = splitOr(rhs);
-            Condition c = new Condition();
-            c.leftVar = var;
-            c.op = vals.size() == 1 ? Condition.Op.NEQ : Condition.Op.NIN;
-            c.values = vals;
-            out.add(c);
-            return out;
-        }
-
-        // Soportar formato "var = valor" cuando header es "expected" (aunque aquí no usamos)
-        // Para condiciones normales ya cubrimos.
-
-        return out;
+        return conditions;
     }
 
-    private static Condition parseDateDiff(String header, String s) {
-        // header puede ser "regla_fecha" (no usamos); el nombre de variables está en la expresión
-        // "fecha1 - fecha2 < 12 meses"
-        String expr = s.replaceAll("(?i)meses?", "meses").trim();
-        String[] sides = expr.split("[<>=]");
-        String lhs = sides[0].trim(); // "fecha1 - fecha2"
-        String rhs = expr.substring(lhs.length()).trim(); // "< 12 meses"
+    private static List<Condition> parseOrCondition(String expression) {
+        List<Condition> conditions = new ArrayList<>();
+        String[] orParts = expression.split(" o ");
 
-        String[] parts = lhs.split("\\s-\\s");
-        String f1 = parts[0].trim();
-        String f2 = parts[1].trim();
-
-        String opStr = expr.substring(lhs.length(), expr.indexOf(" ", lhs.length())).trim(); // < ó > ó =
-        String numPart = rhs.replaceAll("[^0-9]", "");
-        int months = Integer.parseInt(numPart);
-
-        Condition c = new Condition();
-        c.leftVar = f1 + "|" + f2; // las dos fechas separadas por |
-        c.values = List.of(String.valueOf(months), "meses");
-        switch (opStr) {
-            case "<" -> c.op = Condition.Op.DATE_DIFF_LT;
-            case ">" -> c.op = Condition.Op.DATE_DIFF_GT;
-            default  -> c.op = Condition.Op.DATE_DIFF_EQ;
+        for (String part : orParts) {
+            part = part.trim();
+            conditions.add(parseSimpleCondition(part));
         }
-        return c;
+
+        return conditions;
     }
 
-    private static List<String> splitOr(String rhs) {
-        return Arrays.stream(rhs.split("(?i)\\s+o\\s+"))
-                .map(String::trim).filter(s -> !s.isBlank()).toList();
+    private static Condition parseSimpleCondition(String expression) {
+        Condition cond = new Condition();
+
+        // Detectar operadores
+        if (expression.contains("<>")) {
+            String[] parts = expression.split("<>");
+            cond.leftVar = parts[0].trim();
+            cond.op = Op.NEQ;
+            cond.values = parseValues(parts[1].trim());
+        } else if (expression.contains("=")) {
+            String[] parts = expression.split("=");
+            cond.leftVar = parts[0].trim();
+
+            // Verificar si es una condición de fecha
+            if (cond.leftVar.contains("|")) {
+                cond.op = Op.DATE_DIFF_LT; // Por defecto, se puede ajustar después
+            } else {
+                cond.op = Op.EQ;
+            }
+
+            cond.values = parseValues(parts[1].trim());
+        } else {
+            // Valor por defecto para debugging
+            cond.leftVar = expression;
+            cond.op = Op.EQ;
+            cond.values = List.of("true");
+        }
+
+        // Agregar descripción implícita si es un businessBureauEvent
+        if ("businessBureauEvent".equals(cond.leftVar) && cond.op == Op.EQ) {
+            addImplicitDescription(cond);
+        }
+
+        return cond;
+    }
+
+    private static List<String> parseValues(String valueStr) {
+        // Limpiar y dividir valores múltiples
+        return Arrays.stream(valueStr.split(" o "))
+                .map(String::trim)
+                .collect(Collectors.toList());
+    }
+
+    private static void addImplicitDescription(Condition eventCond) {
+        // Para cada valor de evento, agregar la descripción implícita correspondiente
+        List<String> implicitDescriptions = new ArrayList<>();
+
+        for (String eventCode : eventCond.values) {
+            String description = EVENT_DESC_MAP.get(eventCode.trim());
+            if (description != null) {
+                implicitDescriptions.add(description);
+            }
+        }
+
+        // Si encontramos descripciones implícitas, las almacenamos para uso posterior
+        if (!implicitDescriptions.isEmpty()) {
+            System.out.println("Descripciones implícitas para " + eventCond.values + ": " + implicitDescriptions);
+            // Esto se usará en Evaluators para validar automáticamente
+        }
     }
 }

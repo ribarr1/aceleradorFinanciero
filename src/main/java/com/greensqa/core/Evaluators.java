@@ -35,11 +35,17 @@ public class Evaluators {
         Object got = FieldResolver.get(item, var);
         if (got == null) return false;
         String s = normalize(got);
-        // caso especial: implícito de businessBureauEventDesc
-        if ("businessBureauEventDesc".equals(var) && vals.size()==1) {
-            // vals trae el code; verificar descripción implícita
-            return FieldResolver.impliesDesc(item, vals.get(0));
+
+        // Caso especial: businessBureauEventDesc implícito
+        if ("businessBureauEventDesc".equals(var)) {
+            // Verificar si coincide con alguna descripción implícita
+            for (String val : vals) {
+                if (s.contains(normalize(val))) {
+                    return true;
+                }
+            }
         }
+
         return vals.stream().anyMatch(v -> s.equalsIgnoreCase(v.trim()));
     }
 

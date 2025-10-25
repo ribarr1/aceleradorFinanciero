@@ -76,37 +76,46 @@ public class Arnes {
         }
     }
 
-    // Construye 1 CaseDef desde una fila del modelo CSV
-    private static CaseDef toCaseDef(Map<String,String> row) {
+    private static CaseDef toCaseDef(Map<String, String> row) {
         CaseDef def = new CaseDef();
-        def.id          = row.getOrDefault("id", "").trim();
-        def.expectedVar = row.getOrDefault("expectedVar", "").trim();
-        def.groupsRaw   = row.getOrDefault("groups", "").trim();
-        def.expectedExpr= row.getOrDefault("expected", "").trim();
 
-        // Por cada columna “variable”, parseamos su contenido si no está vacío
+        // Asignar valores básicos
+        def.id = row.getOrDefault("id", "").trim();
+        def.expectedVar = row.getOrDefault("expectedVar", "").trim();
+        def.groupsRaw = row.getOrDefault("groups", "").trim();
+        def.expectedExpr = row.getOrDefault("expected", "").trim();
+
+        System.out.println("=== Procesando caso: " + def.id + " ===");
+
+        // Procesar todas las columnas que no son las reservadas
         for (var e : row.entrySet()) {
             String col = e.getKey().trim();
-            String val = e.getValue().trim();
-            if (List.of("id","expectedVar","groups","expected").contains(col)) continue;
-            if (val.isBlank()) continue;
+            String val = e.getValue() != null ? e.getValue().trim() : "";
 
-            // Celdas pueden traer “y” (AND) y “o” (OR), =, <>
-            List<Condition> cs = DslParser.parseCell(col, val);
-            def.conditions.addAll(cs);
+            // Saltar columnas reservadas o vacías
+            if (List.of("id", "expectedVar", "groups", "expected").contains(col) || val.isEmpty()) {
+                continue;
+            }
+
+            System.out.println("Procesando condición - " + col + ": " + val);
+            List<Condition> conditions = DslParser.parseCell(col, val);
+            System.out.println("Condiciones parseadas: " + conditions.size());
+
+            def.conditions.addAll(conditions);
         }
-        if (def.expectedVar != null && !def.expectedVar.isBlank() && def.expectedVar.contains("=")) {
-            String expr = def.expectedVar.trim();
-            int eq = expr.indexOf('=');
-            String name = expr.substring(0, eq).trim();
-            String val  = expr.substring(eq + 1).trim();
-            def.expectedVar = name;
+
+        // Parsear expectedVar si contiene =
+        if (def.expectedVar.contains("=")) {
+            String[] parts = def.expectedVar.split("=");
+            def.expectedVar = parts[0].trim();
             try {
-                def.expectedConst = Integer.parseInt(val);
-            } catch (Exception ignore) {
-                def.expectedConst = null; // si no es número, se leerá del JSON de variables
+                def.expectedConst = Integer.parseInt(parts[1].trim());
+            } catch (NumberFormatException e) {
+                def.expectedConst = null;
             }
         }
+
+        System.out.println("Total condiciones para caso " + def.id + ": " + def.conditions.size());
         return def;
     }
 }

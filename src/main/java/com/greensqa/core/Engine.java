@@ -9,9 +9,18 @@ import java.util.*;
 
 public class Engine {
     public static RunResult run(JsonNode report, JsonNode variables, CaseDef def) {
+
+        System.out.println("🚀 INICIANDO EJECUCIÓN CASO: " + def.id);
+        System.out.println("Grupos a evaluar: " + def.groupsRaw);
+        System.out.println("Total condiciones: " + def.conditions.size());
+
+
         // 1) Seleccionar items de grupos (uno o “A o B”)
         List<JsonNode> items = new ArrayList<>();
         for (String g : def.groups()) items.addAll(GroupSelector.select(report, g));
+
+        System.out.println("Total items a evaluar: " + items.size());
+
 
         // 2) Evaluar condiciones (AND de todas las conditions de la fila)
         boolean anyMatched = true;
@@ -19,6 +28,10 @@ public class Engine {
         System.out.println("Número de condiciones: " + def.conditions.size());
         System.out.println("Condiciones: " + def.conditions);
         for (JsonNode it : items) {
+
+            System.out.println("\nEVALUANDO ITEM " + (cont + 1));
+            System.out.println("Item JSON: " + it);
+
             boolean ok = def.conditions.stream().allMatch(c -> Evaluators.test(it, c));
             if (!ok) { anyMatched = false; break; }
             cont++;
