@@ -10,6 +10,7 @@ public class CaseDef {
     public String groupsRaw;         // ej. "liabilities o creditCard"
     public String expectedExpr;      // opcional: "VAR=valor" si quieres forzar
     public Integer expectedConst;
+    public String expectedOperator;
     public final List<Condition> conditions = new ArrayList<>();
 
     public List<String> groups() {

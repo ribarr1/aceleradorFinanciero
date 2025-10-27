@@ -15,6 +15,7 @@ public class FieldResolver {
 
     public static Object get(JsonNode item, String varName) {
         // Soporta variables “semánticas” frecuentes sin que el CSV use rutas
+        System.out.println("   📍 Buscando campo: '" + varName + "'");
         return switch (varName) {
             case "economicSector" -> intOrNull(item.path("account").path("economicSector"));
             case "typeOfDebtor"   -> coalesce(
@@ -35,6 +36,11 @@ public class FieldResolver {
                     text(item.path("account").path("personIdNumber")),
                     text(item.path("personIdNumber"))
             );
+            case "consultDate" -> text(item.path("ReportHDCplus").path("productResult").path("consultDate"));
+            case "paymentDate" -> coalesce(
+                    text(item.path("status").path("payment").path("paymentDate")),
+                    text(item.path("paymentDate"))
+            );
             default -> // permitir dot-notation si quieres: account.primaryKey, etc.
                     text(resolveByPath(item, varName));
         };
@@ -48,13 +54,38 @@ public class FieldResolver {
     }
 
     // Utiles fecha
-    public static LocalDate getDate(JsonNode item, String var) {
-        String s = (String) get(item, var);
-        if (s == null || s.isBlank()) return null;
-        // Intenta yyyy-MM-dd
-        try { return LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE); }
-        catch (Exception ignore) {}
-        // Agrega más formatos si tu JSON los trae distintos
+    public static LocalDate getDate(JsonNode item, String field) {
+        try {
+            System.out.println("   📅 Buscando fecha: '" + field + "'");
+
+            // Primero usar el mapeo de FieldResolver.get
+            Object value = get(item, field);
+            if (value instanceof String) {
+                String dateStr = (String) value;
+                // Extraer solo la parte de la fecha (antes de la T)
+                if (dateStr.contains("T")) {
+                    dateStr = dateStr.split("T")[0];
+                }
+                System.out.println("   📅 Fecha encontrada: " + dateStr);
+                return LocalDate.parse(dateStr);
+            }
+
+            // Si no funciona, buscar directamente
+            JsonNode node = resolveByPath(item, field);
+            if (node != null && !node.isMissingNode() && !node.isNull()) {
+                String dateStr = node.asText();
+                // Extraer solo la parte de la fecha (antes de la T)
+                if (dateStr.contains("T")) {
+                    dateStr = dateStr.split("T")[0];
+                }
+                System.out.println("   📅 Fecha encontrada (directa): " + dateStr);
+                return LocalDate.parse(dateStr);
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Error parsing date field '" + field + "': " + e.getMessage());
+        }
+        System.out.println("   ❌ Fecha no encontrada: " + field);
         return null;
     }
 

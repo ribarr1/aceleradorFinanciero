@@ -6,10 +6,11 @@ public class RunResult {
     public final String status;   // PASS/FAIL/ERROR
     public final Object actual;
     public final Object expected;
+    public final Object resultadocaso;
     public final String reason;
 
-    public RunResult(String id, String variable, String status, Object actual, Object expected, String reason) {
+    public RunResult(String id, String variable, String status, Object actual, Object expected, Object resultadocaso, String reason) {
         this.id = id; this.variable = variable; this.status = status;
-        this.actual = actual; this.expected = expected; this.reason = reason;
+        this.actual = actual; this.expected = expected; this.resultadocaso = resultadocaso; this.reason = reason;
     }
 }

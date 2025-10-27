@@ -15,4 +15,12 @@ public class Condition {
         return (orConditions != null && !orConditions.isEmpty()) ||
                 (andConditions != null && !andConditions.isEmpty());
     }
+
+    @Override
+    public String toString() {
+        if (isCompound()) {
+            return "CompoundCondition{or=" + orConditions + ", and=" + andConditions + "}";
+        }
+        return leftVar + " " + op + " " + values;
+    }
 }

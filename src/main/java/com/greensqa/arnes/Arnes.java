@@ -1,5 +1,5 @@
 package com.greensqa.arnes;
-
+import com.greensqa.core.ReportGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.greensqa.core.DslParser;
@@ -33,7 +33,8 @@ public class Arnes {
         List<CaseDef> caseDefs = casosCsv.stream().map(Arnes::toCaseDef).toList();
 
         for (Map<String,String> vars : inputs) {
-            System.out.println("=== Ejecutando personIdNumber = " + vars.getOrDefault("personIdNumber","(s/d)") + " ===");
+            String personId = vars.getOrDefault("personIdNumber","(s/d)");
+            System.out.println("=== Ejecutando personIdNumber = " + personId + " ===");
 
             // 3) templating de bodies
             JsonNode bodyR = TemplateUtil.loadTemplatedJson(mapper, "/bodyReporte.json", vars);
@@ -49,9 +50,11 @@ public class Arnes {
                 try {
                     results.add(Engine.run(report, variables, def));
                 } catch (Exception e) {
-                    results.add(new RunResult(def.id, def.expectedVar, "ERROR", null, null, e.getMessage()));
+                    results.add(new RunResult(def.id, def.expectedVar, "ERROR", null, null, null, e.getMessage()));
                 }
             }
+
+            ReportGenerator.printSimpleReport(personId, results);
 
             // 6) guardar artefactos y resumen
             client.saveJson(Path.of("outputs/report.json"), report);
@@ -65,7 +68,7 @@ public class Arnes {
             summary.put("results", results.stream().map(r -> {
                 var m = new LinkedHashMap<String,Object>();
                 m.put("id", r.id); m.put("variable", r.variable);
-                m.put("status", r.status); m.put("actual", r.actual); m.put("expected", r.expected);
+                m.put("status", r.status); m.put("resultadoRobot", r.actual); m.put("resultadoJson", r.expected); m.put("resultadoCaso", r.resultadocaso);
                 if (r.reason != null) m.put("reason", r.reason);
                 return m;
             }).collect(Collectors.toList()));
@@ -80,42 +83,49 @@ public class Arnes {
         CaseDef def = new CaseDef();
 
         // Asignar valores básicos
-        def.id = row.getOrDefault("id", "").trim();
+        def.id = row.get("﻿id") != null ? row.get("﻿id").trim() : row.getOrDefault("id", "").trim();
+       // def.id = row.containsKey("id") ? row.get("id").trim() : row.getOrDefault("id", "").trim();
         def.expectedVar = row.getOrDefault("expectedVar", "").trim();
         def.groupsRaw = row.getOrDefault("groups", "").trim();
         def.expectedExpr = row.getOrDefault("expected", "").trim();
-
-        System.out.println("=== Procesando caso: " + def.id + " ===");
 
         // Procesar todas las columnas que no son las reservadas
         for (var e : row.entrySet()) {
             String col = e.getKey().trim();
             String val = e.getValue() != null ? e.getValue().trim() : "";
 
-            // Saltar columnas reservadas o vacías
-            if (List.of("id", "expectedVar", "groups", "expected").contains(col) || val.isEmpty()) {
-                continue;
-            }
+            if (!col.startsWith("variable ")) continue;
+            if (val.isBlank()) continue;
 
-            System.out.println("Procesando condición - " + col + ": " + val);
             List<Condition> conditions = DslParser.parseCell(col, val);
-            System.out.println("Condiciones parseadas: " + conditions.size());
 
             def.conditions.addAll(conditions);
         }
 
         // Parsear expectedVar si contiene =
-        if (def.expectedVar.contains("=")) {
+        if (def.expectedVar.contains("=") ) {
             String[] parts = def.expectedVar.split("=");
             def.expectedVar = parts[0].trim();
             try {
+                def.expectedOperator="=";
                 def.expectedConst = Integer.parseInt(parts[1].trim());
             } catch (NumberFormatException e) {
                 def.expectedConst = null;
+                def.expectedOperator=null;
+            }
+        }else{
+            String[] parts = def.expectedVar.split(">");
+            def.expectedVar = parts[0].trim();
+            try {
+                def.expectedConst = Integer.parseInt(parts[1].trim());
+                def.expectedOperator=">";
+            } catch (NumberFormatException e) {
+                def.expectedConst = null;
+                def.expectedOperator=null;
             }
         }
 
-        System.out.println("Total condiciones para caso " + def.id + ": " + def.conditions.size());
+
         return def;
     }
 }

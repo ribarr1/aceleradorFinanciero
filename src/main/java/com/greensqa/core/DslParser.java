@@ -18,6 +18,7 @@ public class DslParser {
     );
 
     public static List<Condition> parseCell(String col, String val) {
+
         if (val == null || val.trim().isEmpty()) {
             return List.of();
         }
@@ -69,9 +70,34 @@ public class DslParser {
         List<Condition> conditions = new ArrayList<>();
         String[] orParts = expression.split(" o ");
 
-        for (String part : orParts) {
-            part = part.trim();
-            conditions.add(parseSimpleCondition(part));
+        // Si es una condición con "variable = valor1 o valor2"
+        if (orParts[0].contains("=")) {
+            String[] leftRight = orParts[0].split("=");
+            String variable = leftRight[0].trim();
+
+            Condition cond = new Condition();
+            cond.leftVar = variable;
+            cond.op = Op.IN;  // Usar IN para múltiples valores
+            cond.values = new ArrayList<>();
+
+            // Agregar todos los valores (de todas las partes)
+            for (String part : orParts) {
+                String value = part.trim();
+                // Si la parte contiene "=", extraer solo el valor derecho
+                if (value.contains("=")) {
+                    String[] lr = value.split("=");
+                    value = lr[1].trim();
+                }
+                cond.values.add(value);
+            }
+
+            conditions.add(cond);
+        } else {
+            // Caso por defecto (mantener comportamiento actual)
+            for (String part : orParts) {
+                part = part.trim();
+                conditions.add(parseSimpleCondition(part));
+            }
         }
 
         return conditions;
@@ -81,6 +107,10 @@ public class DslParser {
         Condition cond = new Condition();
 
         // Detectar operadores
+        // Detectar condiciones de fecha primero
+        if (expression.contains(" - ") && expression.contains(" meses")) {
+            return parseDateCondition(expression);
+        }
         if (expression.contains("<>")) {
             String[] parts = expression.split("<>");
             cond.leftVar = parts[0].trim();
@@ -108,6 +138,44 @@ public class DslParser {
         // Agregar descripción implícita si es un businessBureauEvent
         if ("businessBureauEvent".equals(cond.leftVar) && cond.op == Op.EQ) {
             addImplicitDescription(cond);
+        }
+
+        return cond;
+    }
+
+    private static Condition parseDateCondition(String expression) {
+        Condition cond = new Condition();
+
+        try {
+            // Ejemplo: "consultDate - paymentDate < 12 meses"
+            String[] parts = expression.split(" ");
+
+            // Extraer las fechas (partes 0 y 2)
+            String date1 = parts[0].trim();
+            String date2 = parts[2].trim();
+            cond.leftVar = date1 + "|" + date2;  // Formato: "consultDate|paymentDate"
+
+            // Extraer operador y valor
+            String operator = parts[3].trim(); // "<", ">", "="
+            String valueWithMeses = parts[4].trim();
+            String value = valueWithMeses.replace("meses", "").trim();
+
+            // Asignar operador correcto
+            switch (operator) {
+                case "<": cond.op = Op.DATE_DIFF_LT; break;
+                case ">": cond.op = Op.DATE_DIFF_GT; break;
+                case "=": cond.op = Op.DATE_DIFF_EQ; break;
+                default: cond.op = Op.DATE_DIFF_LT;
+            }
+
+            cond.values = List.of(value);
+
+        } catch (Exception e) {
+            System.err.println("Error parsing date condition: " + expression);
+            // Fallback a condición básica
+            cond.leftVar = expression;
+            cond.op = Op.EQ;
+            cond.values = List.of("true");
         }
 
         return cond;

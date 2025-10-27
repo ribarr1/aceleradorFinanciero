@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 
@@ -59,4 +61,9 @@ public class ServiceClient {
     }
 
     public ObjectMapper mapper() { return mapper; }
+
+    public void saveText(Path path, String content) throws IOException {
+        Files.createDirectories(path.getParent());
+        Files.writeString(path, content, StandardCharsets.UTF_8);
+    }
 }
