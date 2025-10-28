@@ -10,10 +10,10 @@
     "identifyingUser": {
         "person": {
             "personId": {
-                "personIdNumber": "${personLastName}",
-                "personIdType": 1
+                "personIdNumber": "{{personIdNumber}}",
+                "personIdType": "{{personIdType}}"
             },
-            "personLastName": "BERMUDEZ"
+            "personLastName": "{{personLastName}}"
         }
     }
 }

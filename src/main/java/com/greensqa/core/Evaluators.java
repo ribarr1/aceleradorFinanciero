@@ -84,11 +84,11 @@ public class Evaluators {
                     Period.between(date2, date1).getMonths());
             int threshold = Integer.parseInt(c.values.get(0));
 
-            System.out.println("📅 Diferencia de fechas:");
-            System.out.println("   " + dateFields[0] + ": " + date1);
-            System.out.println("   " + dateFields[1] + ": " + date2);
-            System.out.println("   Diferencia en meses: " + months);
-            System.out.println("   Umbral: " + threshold + " meses");
+          //  System.out.println("📅 Diferencia de fechas:");
+          //  System.out.println("   " + dateFields[0] + ": " + date1);
+          //  System.out.println("   " + dateFields[1] + ": " + date2);
+          //  System.out.println("   Diferencia en meses: " + months);
+          //  System.out.println("   Umbral: " + threshold + " meses");
 
             boolean result = switch (c.op) {
                 case DATE_DIFF_LT -> months < threshold;

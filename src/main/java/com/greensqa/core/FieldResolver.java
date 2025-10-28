@@ -41,6 +41,14 @@ public class FieldResolver {
                     text(item.path("status").path("payment").path("paymentDate")),
                     text(item.path("paymentDate"))
             );
+            case "originStatusOfAccount" -> coalesce(
+                    text(item.path("status").path("origin").path("originStatusOfAccount")),
+                    text(item.path("status").path("originStatusOfAccount"))
+            );
+            case "originStatusOfAccountDesc" -> coalesce(
+                    text(item.path("status").path("origin").path("originStatusOfAccountDesc")),
+                    text(item.path("status").path("originStatusOfAccountDesc"))
+            );
             default -> // permitir dot-notation si quieres: account.primaryKey, etc.
                     text(resolveByPath(item, varName));
         };
@@ -78,7 +86,7 @@ public class FieldResolver {
                 if (dateStr.contains("T")) {
                     dateStr = dateStr.split("T")[0];
                 }
-                System.out.println("   📅 Fecha encontrada (directa): " + dateStr);
+  //              System.out.println("   📅 Fecha encontrada (directa): " + dateStr);
                 return LocalDate.parse(dateStr);
             }
 
