@@ -49,6 +49,10 @@ public class FieldResolver {
                     text(item.path("status").path("origin").path("originStatusOfAccountDesc")),
                     text(item.path("status").path("originStatusOfAccountDesc"))
             );
+            case "typeOfDebtorDesc" -> coalesce(
+                    text(item.path("featuresLiabilities").path("typeOfDebtorDesc")),
+                    text(item.path("featuresLiabilities").path("typeOfDebtorDesc"))
+            );
             default -> // permitir dot-notation si quieres: account.primaryKey, etc.
                     text(resolveByPath(item, varName));
         };
