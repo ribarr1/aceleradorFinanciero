@@ -1,5 +1,6 @@
 package com.greensqa.core;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.LocalDate;
@@ -53,6 +54,39 @@ public class FieldResolver {
                     text(item.path("featuresLiabilities").path("typeOfDebtorDesc")),
                     text(item.path("featuresLiabilities").path("typeOfDebtorDesc"))
             );
+            case "accountType" -> coalesce(
+                    text(item.path("account").path("accountType")),
+                    text(item.path("account").path("accountType"))
+            );
+            case "counterpartyIdNumber" -> coalesce(
+                    text(item.path("account").path("counterpartyIdNumber")),
+                    text(item.path("account").path("counterpartyIdNumber"))
+            );
+            case "periodicityOfPayments" -> coalesce(
+                    text(item.withArray(JsonPointer.valueOf("/values")).path(0).path("periodicityOfPayments")),
+                    text(item.withArray(JsonPointer.valueOf("/values")).path(0).path("periodicityOfPayments"))
+            );
+            case "subAccountType" -> coalesce(
+                    text(item.path("account").path("subAccountType")),
+                    text(item.path("account").path("subAccountType"))
+            );
+            case "typeOfCredit" -> coalesce(
+                    text(item.path("featuresLiabilities").path("typeOfCredit")),
+                    text(item.path("typeOfCredit"))
+            );
+            case "typeOfCreditDesc" -> coalesce(
+                    text(item.path("featuresLiabilities").path("typeOfCreditDesc")),
+                    text(item.path("typeOfCreditDesc"))
+            );
+            case "economicSectorName" -> coalesce(
+                    text(item.path("account").path("economicSectorName")),
+                    text(item.path("entity").path("economicSectorName")),
+                    text(item.path("economicSectorName"))
+            );
+            case "inquiryReasonCode" -> coalesce(
+                    text(item.path("inquiryReasonCode")),
+                    text(item.path("inquiryReasonCode"))
+            );
             default -> // permitir dot-notation si quieres: account.primaryKey, etc.
                     text(resolveByPath(item, varName));
         };
@@ -101,10 +135,28 @@ public class FieldResolver {
         return null;
     }
 
+//    // helpers
+//    private static String text(JsonNode n){ return n!=null && !n.isMissingNode() && !n.isNull() ? n.asText(null) : null; }
+//    private static Integer intOrNull(JsonNode n){ return n!=null && n.isInt()? n.intValue():null; }
+//    private static String coalesce(String...v){ for(String s:v){ if(s!=null && !s.isBlank()) return s; } return null; }
+
     // helpers
-    private static String text(JsonNode n){ return n!=null && !n.isMissingNode() && !n.isNull() ? n.asText(null) : null; }
-    private static Integer intOrNull(JsonNode n){ return n!=null && n.isInt()? n.intValue():null; }
-    private static String coalesce(String...v){ for(String s:v){ if(s!=null && !s.isBlank()) return s; } return null; }
+    private static String text(JsonNode n){
+        return n != null && !n.isMissingNode() && !n.isNull() ? n.asText(null) : null;
+    }
+
+    private static Integer intOrNull(JsonNode n){
+        return n != null && n.isInt() ? n.intValue() : null;
+    }
+
+    private static String coalesce(String...v){
+        for(String s : v) {
+            if(s != null && !s.isBlank())
+                return s;
+        }
+        return null;
+    }
+
 
     private static JsonNode resolveByPath(JsonNode root, String path) {
         JsonNode cur = root;

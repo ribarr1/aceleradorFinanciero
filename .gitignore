@@ -95,3 +95,6 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+# CSV
+src/main/resources/modeloGruposCasos.csv
