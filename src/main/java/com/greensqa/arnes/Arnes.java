@@ -10,13 +10,24 @@ import com.greensqa.model.RunResult;
 import com.greensqa.services.ServiceClient;
 import com.greensqa.util.CsvInputLoader;
 import com.greensqa.util.TemplateUtil;
+
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Arnes {
+    private static final String CSV_HEADER = "UsuarioID;casoID;VariableEsperada;ValorJson;ValorObtenido;resultadoRobot;status";
+    private static PrintWriter csvWriter;
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
       try {
+          // Inicializar archivo CSV
+          initCSVFile();
+
           runApplication(args);
       }  catch (Throwable t) {
           System.err.println("ERROR CRÍTICO: " + t.getClass().getSimpleName() + " - " + t.getMessage());
@@ -26,8 +37,24 @@ public class Arnes {
           try { System.in.read(); } catch (Exception e) {}
           try { Thread.sleep(5000); } catch (InterruptedException e) {}
       }
+      finally {
+          // Cerrar archivo al final
+          if (csvWriter != null) {
+              csvWriter.close();
+          }
+      }
+
     }
 
+    private static void initCSVFile() {
+        try {
+            csvWriter = new PrintWriter(new FileWriter("resultados.csv", false)); // false = sobrescribir
+            csvWriter.println(CSV_HEADER);
+            csvWriter.flush();
+        } catch (Exception e) {
+            System.err.println("Error creando archivo CSV: " + e.getMessage());
+        }
+    }
     private static void runApplication(String[] args) {
         String cookie = "AWSALB=...; AWSALBCORS=...";   // si aplica
         String reportUrl = "https://webappsdev.devbancoomeva.co/credit-history/v1/hdcplus";
@@ -133,9 +160,33 @@ public class Arnes {
             }
             System.out.println("=== REGISTRO " + personId + " COMPLETADO ===");
             System.out.println();
+
+            writeResultsToCSV(personId, results);
         }
     }
 
+    private static void writeResultsToCSV(String usuarioId, List<RunResult> results) {
+        for (RunResult result : results) {
+            String linea = String.format("%s;%s;%s;%s;%s;%s;%s",
+                    usuarioId,
+                    result.id,
+                    result.variable,
+                    result.expected != null ? result.expected : "",
+                    result.actual != null ? result.actual : "",
+                    result.resultadocaso != null ? result.resultadocaso : "",
+                    result.status
+            );
+
+            csvWriter.println(linea);
+        }
+        csvWriter.flush(); // Asegurar que se escribe en disco
+    }
+    private static void closeCSVFile() {
+        if (csvWriter != null) {
+            csvWriter.close();
+            System.out.println("Archivo CSV guardado: logs/resultados.csv");
+        }
+    }
     private static CaseDef toCaseDef(Map<String, String> row) {
         CaseDef def = new CaseDef();
 
