@@ -51,6 +51,7 @@ logs/
 *.zip
 *.tar.gz
 *.rar
+*.csv
 
 # Unit test reports
 TEST-*.xml

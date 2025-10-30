@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Arnes {
-    private static final String CSV_HEADER = "UsuarioID;casoID;VariableEsperada;ValorJson;ValorObtenido;resultadoRobot;status";
+    private static final String CSV_HEADER = "UsuarioID;casoID;VariableEsperada;ValorJson;resultadoRobot;resultadoCaso;status";
     private static PrintWriter csvWriter;
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 

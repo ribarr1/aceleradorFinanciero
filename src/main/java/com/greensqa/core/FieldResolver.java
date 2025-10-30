@@ -11,7 +11,8 @@ public class FieldResolver {
     private static final Map<String,String> EVENT_DESC = Map.of(
             "45","cartera castigada",
             "47","dudoso recaudo",
-            "46","cartera recuperada"
+            "46","cartera recuperada",
+            "14", "mora 60 al dia"
     );
 
     public static Object get(JsonNode item, String varName) {

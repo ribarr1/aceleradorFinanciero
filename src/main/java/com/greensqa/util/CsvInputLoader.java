@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class CsvInputLoader {
+
+
     public static List<Map<String, String>> loadCsv(String resourcePath) {
         List<Map<String, String>> rows = new ArrayList<>();
         try (var in = CsvInputLoader.class.getResourceAsStream(resourcePath);
