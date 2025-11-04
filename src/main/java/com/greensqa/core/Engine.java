@@ -23,7 +23,7 @@ public class Engine {
 
 
         // 2) Evaluar condiciones (AND de todas las conditions de la fila)
-        boolean allMatched = true;
+        boolean anyMatched = false;
         int contOk = 0;
         System.out.println("Número de condiciones: " + def.conditions.size());
         System.out.println("Condiciones: " + def.conditions);
@@ -35,7 +35,7 @@ public class Engine {
 
             boolean ok = def.conditions.stream().allMatch(c -> Evaluators.test(it, report, c));
             if (def.expectedOperator.equals("=")){
-                if (!ok) { allMatched = false; break; }
+                if (ok) { anyMatched = true; break; }
             }
             else {if (ok) {contOk++;}}
         }
@@ -45,7 +45,7 @@ public class Engine {
         // 3) actual: por defecto 1 si existió al menos una obligación que cumple, sino 0
         int actual=9;
         if (def.expectedOperator.equals("=")) {
-            actual = allMatched ? 1 : 0;
+            actual = anyMatched ? 1 : 0;
         }else{
             actual=contOk;
         }
@@ -56,7 +56,8 @@ public class Engine {
                 : JsonUtils.findFirstInt(variables, def.expectedVar);
 
         String status = (expected == null) ? "ERROR" :
-                (Objects.equals(actual, expected) && Objects.equals(actual, resultadocaso)) ? "PASS" : "FAIL";
+                (Objects.equals(actual, expected)) ? "PASS" : "FAIL";
+              //  (Objects.equals(actual, expected) && Objects.equals(actual, resultadocaso)) ? "PASS" : "FAIL";
         return new RunResult(def.id, def.expectedVar, status, actual, expected, resultadocaso, null);
     }
 }

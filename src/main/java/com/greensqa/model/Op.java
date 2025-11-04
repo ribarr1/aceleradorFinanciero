@@ -7,5 +7,5 @@ public enum Op {
     NIN,          // no en lista
     DATE_DIFF_LT, // diferencia de fechas <
     DATE_DIFF_GT, // diferencia de fechas >
-    DATE_DIFF_EQ  // diferencia de fechas =
+    DATE_DIFF_EQ,  // diferencia de fechas =
 }
