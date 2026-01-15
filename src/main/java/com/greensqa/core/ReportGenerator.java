@@ -21,22 +21,22 @@ public class ReportGenerator {
 
         System.out.println("📊 RESUMEN:");
         System.out.println("   • Total casos: " + total);
-        System.out.println("   • Aprobados: " + aprobados + " ✅");
-        System.out.println("   • Rechazados: " + rechazados + " ❌");
-        System.out.println("   • Con error: " + (total - aprobados - rechazados) + " ⚠️");
+        System.out.println("   • Aprobados: " + aprobados + " Pasados");
+        System.out.println("   • Rechazados: " + rechazados + " Fallidos");
+        System.out.println("   • Con error: " + (total - aprobados - rechazados) + " Errores");
 
         System.out.println("\n🔍 DETALLE:");
         for (RunResult r : results) {
-            String icon = "PASS".equals(r.status) ? "✅" : "FAIL".equals(r.status) ? "❌" : "⚠️";
+            String icon = "PASS".equals(r.status) ? "Pasado" : "FAIL".equals(r.status) ? "fallido" : "Error";
             System.out.println("   " + icon + " Caso " + r.id + " - " + r.variable +
-                    " (Esperado: " + r.expected + ", Obtenido: " + r.actual + ")");
+                    " (Json: " + r.expected + ", Robot: " + r.actual + ")");
         }
 
         System.out.println("\n🎯 CONCLUSIÓN:");
         if (rechazados == 0) {
-            System.out.println("   ✅ CUMPLE con los criterios de aprobación");
+            System.out.println("    CUMPLE con los criterios de aprobación");
         } else {
-            System.out.println("   ❌ NO CUMPLE con algunos criterios");
+            System.out.println("    NO CUMPLE con algunos criterios");
         }
         System.out.println("=".repeat(60) + "\n");
     }

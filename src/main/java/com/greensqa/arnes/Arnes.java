@@ -14,6 +14,7 @@ import com.greensqa.util.TemplateUtil;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,14 +58,14 @@ public class Arnes {
     }
     private static void runApplication(String[] args) {
         String cookie = "AWSALB=...; AWSALBCORS=...";   // si aplica
-        String reportUrl = "https://webappsdev.devbancoomeva.co/credit-history/v1/hdcplus";
-        String variablesUrl = "https://rulesdev.devbancoomeva.co/hdc-plus/api/v1/interpreter";
+        String reportUrl = "https://webappspruebas.devbancoomeva.co/credit-history/v1/hdcplus/Retrieve";
+        String variablesUrl = "https://rulesqa.devbancoomeva.co/hdc-plus/api/v1/interpreter";
 
         ServiceClient client = new ServiceClient(cookie);
         ObjectMapper mapper = client.mapper();
 
         // 1) Cargar entradas (múltiples filas)
-        List<Map<String, String>> inputs = CsvInputLoader.loadCsv("/request.csv");
+        List<Map<String, String>> inputs = CsvInputLoader.loadCsv("request.csv");
 
        // System.out.println("=== DEBUG CSV INPUT ===");
        // System.out.println("Número de registros cargados: " + inputs.size());
@@ -75,7 +76,7 @@ public class Arnes {
 
 
         // 2) Cargar modelo de casos (filas → CaseDef)
-        List<Map<String, String>> casosCsv = CsvInputLoader.loadCsv("/modeloGruposCasos.csv");
+        List<Map<String, String>> casosCsv = CsvInputLoader.loadCsv("modeloGruposCasos.csv");
 
         List<CaseDef> caseDefs = casosCsv.stream().map(Arnes::toCaseDef).toList();
 
@@ -144,7 +145,7 @@ public class Arnes {
                 //mapper.writerWithDefaultPrettyPrinter().writeValue(System.out, summary);
                 String jsonOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(summary);
             //    System.out.println("Summary impreso correctamente para " + personId); // ← Agregar esto
-                System.out.println(jsonOutput);
+               // System.out.println(jsonOutput);
             } catch (Exception e) {
                 System.err.println("ERROR CRÍTICO imprimiendo summary: " + e.getClass().getName() + " - " + e.getMessage());
                 e.printStackTrace();
@@ -210,27 +211,46 @@ public class Arnes {
             def.conditions.addAll(conditions);
         }
 
-        // Parsear expectedVar si contiene =
-        if (def.expectedVar.contains("=") ) {
-            String[] parts = def.expectedVar.split("=");
+
+
+        // Parsear expectedVar si contiene >=, = o >
+        if (def.expectedVar.contains(">=")) {
+            String[] parts = def.expectedVar.split(">=");
             def.expectedVar = parts[0].trim();
             try {
-                def.expectedOperator="=";
+                def.expectedOperator = ">=";
                 def.expectedConst = Integer.parseInt(parts[1].trim());
             } catch (NumberFormatException e) {
                 def.expectedConst = null;
-                def.expectedOperator=null;
+                def.expectedOperator = null;
             }
-        }else{
+
+        } else if (def.expectedVar.contains("=")) {
+            String[] parts = def.expectedVar.split("=");
+            def.expectedVar = parts[0].trim();
+            try {
+                def.expectedOperator = "=";
+                //def.expectedConst = Integer.parseInt(parts[1].trim());
+            } catch (NumberFormatException e) {
+                def.expectedConst = null;
+                def.expectedOperator = null;
+            }
+
+        } else if (def.expectedVar.contains(">")) {
             String[] parts = def.expectedVar.split(">");
             def.expectedVar = parts[0].trim();
             try {
                 def.expectedConst = Integer.parseInt(parts[1].trim());
-                def.expectedOperator=">";
+                def.expectedOperator = ">";
             } catch (NumberFormatException e) {
                 def.expectedConst = null;
-                def.expectedOperator=null;
+                def.expectedOperator = null;
             }
+
+        } else {
+            // ningún operador encontrado → valores por defecto
+            def.expectedOperator = null;
+            def.expectedConst = null;
         }
 
 

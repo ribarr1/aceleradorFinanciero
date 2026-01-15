@@ -53,7 +53,7 @@ public class FieldResolver {
             );
             case "typeOfDebtorDesc" -> coalesce(
                     text(item.path("featuresLiabilities").path("typeOfDebtorDesc")),
-                    text(item.path("featuresLiabilities").path("typeOfDebtorDesc"))
+                    text(item.path("FeaturesCreditCard").path("typeOfDebtorDesc"))
             );
             case "accountType" -> coalesce(
                     text(item.path("account").path("accountType")),
@@ -88,6 +88,24 @@ public class FieldResolver {
                     text(item.path("inquiryReasonCode")),
                     text(item.path("inquiryReasonCode"))
             );
+            case "initialValue" -> coalesce(
+                    // A) primer valor no vacío en el array
+                    textFromArrayFirst(item, "values", "initialValue"),
+                    // fallback por si en algún payload viene plano
+                    text(item.path("initialValue"))
+            );
+            case "debtBalance" -> coalesce(
+                    // A) primer valor no vacío en el array
+                    textFromArrayFirst(item, "values", "debtBalance"),
+                    // fallback por si en algún payload viene plano
+                    text(item.path("debtBalance"))
+            );
+            case "businessValueBalanceOverdue" -> coalesce(
+                    // A) primer valor no vacío en el array
+                    textFromArrayFirst(item, "values", "businessValueBalanceOverdue"),
+                    // fallback por si en algún payload viene plano
+                    text(item.path("businessValueBalanceOverdue"))
+            );
             default -> // permitir dot-notation si quieres: account.primaryKey, etc.
                     text(resolveByPath(item, varName));
         };
@@ -98,6 +116,17 @@ public class FieldResolver {
         if (expectedDesc == null) return true; // sin regla implícita
         String desc = (String) get(item, "businessBureauEventDesc");
         return desc != null && desc.toLowerCase(Locale.ROOT).contains(expectedDesc);
+    }
+
+    private static String textFromArrayFirst(JsonNode root, String arrayName, String field) {
+        JsonNode arr = root.path(arrayName);
+        if (arr != null && arr.isArray()) {
+            for (JsonNode elem : arr) {
+                String v = text(elem.path(field));
+                if (v != null && !v.isBlank()) return v;
+            }
+        }
+        return null;
     }
 
     // Utiles fecha

@@ -66,7 +66,7 @@ public class DslParser {
         return conditions;
     }
 
-    private static List<Condition> parseOrCondition(String expression) {
+    /*private static List<Condition> parseOrCondition(String expression) {
         List<Condition> conditions = new ArrayList<>();
         String[] orParts = expression.split(" o ");
 
@@ -101,7 +101,89 @@ public class DslParser {
         }
 
         return conditions;
+    }*/
+
+
+    /****************************************************************************************/
+    private static List<Condition> parseOrCondition(String expression) {
+        List<Condition> conditions = new ArrayList<>();
+
+        // Split tolerante: " o " con espacios variables y case-insensitive
+        String[] orParts = expression.split("(?i)\\s+o\\s+");
+        if (orParts.length == 0) return conditions;
+
+        String first = orParts[0];
+
+        boolean isEq  = first.contains("=");
+        boolean isNeq = first.contains("<>");
+
+        // ----- CASO 1: variable = valor1 o valor2  -> IN [v1,v2]
+        if (isEq && !isNeq) {
+            String[] leftRight = first.split("=", 2);
+            String variable = leftRight[0].trim();
+
+            Condition cond = new Condition();
+            cond.leftVar = variable;
+            cond.op = Op.IN;
+            cond.values = new ArrayList<>();
+
+            for (String part : orParts) {
+                String value = part.trim();
+                if (value.contains("=")) value = value.split("=", 2)[1].trim();
+                cond.values.add(cleanValue(value));
+            }
+
+            conditions.add(cond);
+            return conditions;
+        }
+
+        // ----- CASO 2: variable <> valor1 o valor2 -> NIN [v1,v2]
+        if (isNeq) {
+            String[] leftRight = first.split("<>", 2);
+            String variable = leftRight[0].trim();
+
+            Condition cond = new Condition();
+            cond.leftVar = variable;
+            cond.op = Op.NIN;
+            cond.values = new ArrayList<>();
+
+            for (String part : orParts) {
+                String value = part.trim();
+                if (value.contains("<>")) value = value.split("<>", 2)[1].trim();
+                cond.values.add(cleanValue(value));
+            }
+
+            conditions.add(cond);
+            return conditions;
+        }
+
+        // ----- Por defecto: cada parte se parsea individual
+        for (String part : orParts) {
+            part = part.trim();
+            conditions.add(parseSimpleCondition(part));
+        }
+        return conditions;
     }
+
+    private static String cleanValue(String v) {
+        if (v == null) return "";
+        v = v.trim();
+
+        // Quitar paréntesis alrededor si vienen
+        while (v.startsWith("(") && v.endsWith(")") && v.length() > 1) {
+            v = v.substring(1, v.length() - 1).trim();
+        }
+
+        // Excel duplica comillas: ""texto"" -> "texto"
+        v = v.replace("\"\"", "\"").trim();
+
+        // Quitar comillas externas
+        if ((v.startsWith("\"") && v.endsWith("\"")) || (v.startsWith("'") && v.endsWith("'"))) {
+            v = v.substring(1, v.length() - 1).trim();
+        }
+        return v;
+    }
+    /****************************************************************************************/
 
     private static Condition parseSimpleCondition(String expression) {
         Condition cond = new Condition();

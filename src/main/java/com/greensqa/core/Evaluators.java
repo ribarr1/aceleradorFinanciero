@@ -9,7 +9,10 @@ import java.util.Locale;
 
 public class Evaluators {
 
-    public static boolean test(JsonNode item, JsonNode report, Condition c) {
+    public static Object[] test(JsonNode item, JsonNode report, Condition c) {
+        boolean ok;
+        double valorForzado;
+        String sumar = "";
         System.out.println("\n🔍 EVALUANDO CONDICIÓN:");
         System.out.println("   Variable: " + c.leftVar);
         System.out.println("   Operación: " + c.op);
@@ -17,19 +20,55 @@ public class Evaluators {
 
         // Para condiciones de fecha, usar el report completo para buscar consultDate
         if (c.op == Op.DATE_DIFF_LT || c.op == Op.DATE_DIFF_GT || c.op == Op.DATE_DIFF_EQ) {
-            return dateDiff(item, report, c);
+            ok = dateDiff(item, report, c);
+            return new Object[]{ ok, 0 };
         }
         // Obtener valor REAL del JSON
         Object actualValue = FieldResolver.get(item, c.leftVar);
         System.out.println("   Valor actual en JSON: " + actualValue);
+        double valor = 0.0;
 
-        return switch (c.op) {
-            case EQ   -> eq(item, c.leftVar, c.values.get(0));
+        String compare=String.valueOf(actualValue);
+        if (String.valueOf(c.op).equalsIgnoreCase("EQ")){
+            System.out.println("   C VALUE: " + c.values.get(0));
+          if(c.values.get(0).equals("SUM") || c.values.get(0).equals("MIN") || c.values.get(0).equals("MAX")) {
+              sumar=c.values.get(0);
+              if (actualValue != null) {
+                  try {
+                      valor = Double.parseDouble(String.valueOf(actualValue)
+                              .replace("$", "")
+                              .replace(",", "")
+                              .trim());
+                  } catch (NumberFormatException e) {
+                      System.err.println("⚠️ No se pudo convertir a número: " + actualValue);
+                  }
+              } else {
+                  valor=0;
+              }
+          }else{
+              compare = c.values.get(0);
+          }
+        }
+
+        /*ok = switch (c.op) {
+            case EQ   -> eq(item, c.leftVar, compare);
             case NEQ  -> neq(item, c.leftVar, c.values.get(0));
             case IN   -> in(item, c.leftVar, c.values);
             case NIN  -> nin(item, c.leftVar, c.values);
             case DATE_DIFF_LT, DATE_DIFF_GT, DATE_DIFF_EQ -> dateDiff(item, report, c);
+        };*/
+
+        ok = switch (c.op) {
+            case EQ   -> eq(item, c.leftVar, compare);
+            case NEQ  -> (c.values.size() > 1)
+                    ? nin(item, c.leftVar, c.values)     // <-- si hay varios, trátalo como NIN
+                    : neq(item, c.leftVar, c.values.get(0));
+            case IN   -> in(item, c.leftVar, c.values);
+            case NIN  -> nin(item, c.leftVar, c.values);
+            case DATE_DIFF_LT, DATE_DIFF_GT, DATE_DIFF_EQ -> dateDiff(item, report, c);
         };
+        System.out.println("   SUMAR: " + sumar);
+        return new Object[]{ ok, valor, sumar };
     }
 
     private static boolean eq(JsonNode item, String var, String expected) {
