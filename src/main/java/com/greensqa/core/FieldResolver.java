@@ -38,6 +38,11 @@ public class FieldResolver {
                     text(item.path("account").path("personIdNumber")),
                     text(item.path("personIdNumber"))
             );
+            case "businessBehaviourVectorProduct" -> coalesce(
+                    text(item.path("account").path("liabilitiesAccount").path("businessBehaviourVectorProduct")),
+                    text(item.path("account").path("businessBehaviourVectorProduct")),
+                    text(item.path("businessBehaviourVectorProduct"))
+            );
             case "consultDate" -> text(item.path("ReportHDCplus").path("productResult").path("consultDate"));
             case "paymentDate" -> coalesce(
                     text(item.path("status").path("payment").path("paymentDate")),
@@ -70,6 +75,10 @@ public class FieldResolver {
             case "subAccountType" -> coalesce(
                     text(item.path("account").path("subAccountType")),
                     text(item.path("account").path("subAccountType"))
+            );
+            case "accountOpeningDate" -> coalesce(
+                    text(item.path("account").path("accountOpeningDate")),
+                    text(item.path("account").path("accountOpeningDate"))
             );
             case "typeOfCredit" -> coalesce(
                     text(item.path("featuresLiabilities").path("typeOfCredit")),
@@ -163,6 +172,12 @@ public class FieldResolver {
         }
         System.out.println("   ❌ Fecha no encontrada: " + field);
         return null;
+    }
+
+    public static LocalDate getDate(JsonNode report, JsonNode item, String field) {
+        LocalDate d = getDate(report, field);
+        if (d != null) return d;
+        return getDate(item, field);
     }
 
 //    // helpers

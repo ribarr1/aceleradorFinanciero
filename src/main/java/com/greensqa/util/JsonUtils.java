@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,26 @@ public class JsonUtils {
         JsonNode v = hits.get(0);
         try {
             return v.isNumber() ? v.intValue() : Integer.parseInt(v.asText().trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static String findFirstText(JsonNode root, String key) {
+        var hits = findKeyRecursive(root, key);
+        if (hits.isEmpty()) return null;
+        JsonNode v = hits.get(0);
+        try {
+            return v.isTextual() ? v.textValue() : v.asText().trim();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return LocalDate.parse(value.trim()); // ISO: yyyy-MM-dd
         } catch (Exception e) {
             return null;
         }

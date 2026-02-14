@@ -9,7 +9,7 @@ public class RunResult {
     public final Object resultadocaso;
     public final String reason;
 
-    public RunResult(String id, String variable, String status, Object actual, Object expected, Object resultadocaso, String reason) {
+    public RunResult(String id, String variable, String status, String actual, String expected, Object resultadocaso, String reason) {
         this.id = id; this.variable = variable; this.status = status;
         this.actual = actual; this.expected = expected; this.resultadocaso = resultadocaso; this.reason = reason;
     }

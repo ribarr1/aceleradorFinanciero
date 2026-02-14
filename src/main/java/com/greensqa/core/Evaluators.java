@@ -19,37 +19,58 @@ public class Evaluators {
         System.out.println("   Valores esperados: " + c.values);
 
         // Para condiciones de fecha, usar el report completo para buscar consultDate
-        if (c.op == Op.DATE_DIFF_LT || c.op == Op.DATE_DIFF_GT || c.op == Op.DATE_DIFF_EQ) {
+        Object actualValue = null;double valor = 0.0; String compare = "";
+
+
+        if (c.op == Op.DATE_DIFF_LT || c.op == Op.DATE_DIFF_LTE || c.op == Op.DATE_DIFF_GT || c.op == Op.DATE_DIFF_EQ) {
             ok = dateDiff(item, report, c);
-            return new Object[]{ ok, 0 };
-        }
-        // Obtener valor REAL del JSON
-        Object actualValue = FieldResolver.get(item, c.leftVar);
-        System.out.println("   Valor actual en JSON: " + actualValue);
-        double valor = 0.0;
-
-        String compare=String.valueOf(actualValue);
-        if (String.valueOf(c.op).equalsIgnoreCase("EQ")){
-            System.out.println("   C VALUE: " + c.values.get(0));
-          if(c.values.get(0).equals("SUM") || c.values.get(0).equals("MIN") || c.values.get(0).equals("MAX")) {
-              sumar=c.values.get(0);
-              if (actualValue != null) {
-                  try {
-                      valor = Double.parseDouble(String.valueOf(actualValue)
-                              .replace("$", "")
-                              .replace(",", "")
-                              .trim());
-                  } catch (NumberFormatException e) {
-                      System.err.println("⚠️ No se pudo convertir a número: " + actualValue);
-                  }
-              } else {
-                  valor=0;
-              }
-          }else{
-              compare = c.values.get(0);
-          }
+            return new Object[]{ ok, valor, sumar };
         }
 
+        if (!(c.leftVar != null && c.leftVar.contains("-"))){
+
+            actualValue = FieldResolver.get(item, c.leftVar);
+            System.out.println("   Valor actual en JSON: " + actualValue);
+
+
+
+            compare = String.valueOf(actualValue);
+            if (String.valueOf(c.op).equalsIgnoreCase("EQ")) {
+                System.out.println("   C VALUE: " + c.values.get(0));
+                if (c.values.get(0).equals("SUM") || c.values.get(0).equals("MIN") || c.values.get(0).equals("MAX")) {
+                    sumar = c.values.get(0);
+                    if (actualValue != null) {
+                        try {
+                            valor = Double.parseDouble(String.valueOf(actualValue)
+                                    .replace("$", "")
+                                    .replace(",", "")
+                                    .trim());
+                        } catch (NumberFormatException e) {
+                            System.err.println("⚠️ No se pudo convertir a número: " + actualValue);
+                        }
+                    } else {
+                        valor = 0.0;
+                    }
+                } else {
+                    compare = c.values.get(0);
+                }
+            }
+        }else {
+
+
+            if (c.leftVar.contains("-")
+                    && (c.op == Op.EQ || c.op == Op.IN || c.op == Op.NEQ || c.op == Op.NIN)) {
+
+                if (c.op == Op.EQ || c.op == Op.IN) {
+                    ok = pairIn(item, c.leftVar, c.values);
+                } else {
+                    ok = pairNin(item, c.leftVar, c.values);
+                }
+
+                System.out.println("Resultado (PAIR): " + ok);
+                return new Object[]{ok, valor, sumar};
+            }
+        }
         /*ok = switch (c.op) {
             case EQ   -> eq(item, c.leftVar, compare);
             case NEQ  -> neq(item, c.leftVar, c.values.get(0));
@@ -65,11 +86,18 @@ public class Evaluators {
                     : neq(item, c.leftVar, c.values.get(0));
             case IN   -> in(item, c.leftVar, c.values);
             case NIN  -> nin(item, c.leftVar, c.values);
-            case DATE_DIFF_LT, DATE_DIFF_GT, DATE_DIFF_EQ -> dateDiff(item, report, c);
+            case DATE_DIFF_LT, DATE_DIFF_LTE, DATE_DIFF_GT, DATE_DIFF_GTE, DATE_DIFF_EQ
+                    -> dateDiff(item, report, c);
+            case PICK_MIN_DATE, PICK_MAX_DATE
+                    -> true; // no se evalúa aquí (Engine)
+
+            case MONTHS_BETWEEN
+                    -> true; // tampoco aquí (Engine toma el valor en r[1] si lo calculas antes del switch)
         };
         System.out.println("   SUMAR: " + sumar);
         return new Object[]{ ok, valor, sumar };
     }
+
 
     private static boolean eq(JsonNode item, String var, String expected) {
         Object got = FieldResolver.get(item, var);
@@ -138,6 +166,7 @@ public class Evaluators {
             System.out.println("   Resultado: " + result);
             return result;
 
+
         } catch (Exception e) {
             System.err.println("❌ Error en dateDiff: " + e.getMessage());
             return false;
@@ -147,5 +176,66 @@ public class Evaluators {
     private static String normalize(Object o) {
         String s = String.valueOf(o);
         return s.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean pairIn(JsonNode item, String varPair, List<String> pairValues) {
+        // varPair ejemplo: "accountType-subAccountType"
+        String[] vars = varPair.split("-", 2);
+        String left = vars[0].trim();   // accountType
+        String right = vars[1].trim();  // subAccountType
+
+        Object leftObj = FieldResolver.get(item, left);
+        Object rightObj = FieldResolver.get(item, right);
+        System.out.println("   Valor actual en JSON accountType: " + leftObj);
+        System.out.println("   Valor actual en JSON subAccountType: " + rightObj);
+
+        if (leftObj == null) return false; // si no hay accountType, no puede hacer match
+
+        String actualLeft = normalizeKeepZeros(leftObj);     // "05"
+        String actualRight = rightObj == null ? "" : normalizeKeepZeros(rightObj);
+
+        for (String token : pairValues) {
+            if (token == null) continue;
+            String t = token.trim().replace("\"\"", "\"");
+            // token ejemplo: "05-00" o "03-todos"
+            String[] parts = t.split("-", 2);
+            String expLeft = parts[0].trim();
+            String expRight = (parts.length > 1 ? parts[1].trim() : "");
+
+            expLeft = normalizeKeepZeros(expLeft);
+            expRight = normalizeKeepZeros(expRight);
+
+            if (!actualLeft.equals(expLeft)) continue;
+
+            // wildcard "todos" => cualquier subAccountType es válido
+            if ("todos".equalsIgnoreCase(expRight) || "*".equals(expRight)) {
+                return true;
+            }
+
+            // match exacto del subAccountType
+            if (!actualRight.isEmpty() && actualRight.equals(expRight)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean pairNin(JsonNode item, String varPair, List<String> forbiddenPairs) {
+        // NOT IN de pares: pasa si NO hace match con ninguno
+        return !pairIn(item, varPair, forbiddenPairs);
+    }
+
+    /**
+     * Normaliza sin romper ceros a la izquierda.
+     * - Si viene "05" lo deja "05"
+     * - Si viene 5 lo convierte a "5" (si necesitas forzar a 2 dígitos me dices y lo ajusto)
+     */
+    private static String normalizeKeepZeros(Object o) {
+        String s = String.valueOf(o).trim();
+        // quitar comillas externas si vienen
+        if ((s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"))) {
+            s = s.substring(1, s.length() - 1).trim();
+        }
+        return s.toLowerCase(Locale.ROOT);
     }
 }

@@ -17,9 +17,11 @@ public class ServiceClient {
     private final ObjectMapper mapper;
     private final String cookie;
     private final Duration timeout;
+    private final OAuth2ClientCredentials tokenProvider;
 
-    public ServiceClient(String cookie) {
+    public ServiceClient(String cookie, OAuth2ClientCredentials tokenProvider) {
         this.cookie = cookie == null ? "" : cookie;
+        this.tokenProvider = tokenProvider;
         this.timeout = Duration.ofSeconds(45);
         this.client = HttpClient.newBuilder().connectTimeout(timeout).build();
         this.mapper = new ObjectMapper();
@@ -35,6 +37,12 @@ public class ServiceClient {
                     .header("Accept", "application/json");
 
             if (!cookie.isEmpty()) builder.header("Cookie", cookie);
+
+            if (tokenProvider != null) {
+                String token = tokenProvider.getAccessToken();
+                builder.header("Authorization", "Bearer " + token);
+            }
+
             if (extraHeaders != null) extraHeaders.forEach(builder::header);
 
             HttpRequest request = builder
@@ -66,4 +74,6 @@ public class ServiceClient {
         Files.createDirectories(path.getParent());
         Files.writeString(path, content, StandardCharsets.UTF_8);
     }
+
+
 }

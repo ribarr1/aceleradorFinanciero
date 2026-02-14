@@ -8,4 +8,9 @@ public enum Op {
     DATE_DIFF_LT, // diferencia de fechas <
     DATE_DIFF_GT, // diferencia de fechas >
     DATE_DIFF_EQ,  // diferencia de fechas =
+    PICK_MIN_DATE,
+    PICK_MAX_DATE,
+    MONTHS_BETWEEN,
+    DATE_DIFF_LTE,
+    DATE_DIFF_GTE
 }

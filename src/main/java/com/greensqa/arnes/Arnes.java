@@ -7,6 +7,7 @@ import com.greensqa.core.Engine;
 import com.greensqa.model.CaseDef;
 import com.greensqa.model.Condition;
 import com.greensqa.model.RunResult;
+import com.greensqa.services.OAuth2ClientCredentials;
 import com.greensqa.services.ServiceClient;
 import com.greensqa.util.CsvInputLoader;
 import com.greensqa.util.TemplateUtil;
@@ -61,7 +62,19 @@ public class Arnes {
         String reportUrl = "https://webappspruebas.devbancoomeva.co/credit-history/v1/hdcplus/Retrieve";
         String variablesUrl = "https://rulesqa.devbancoomeva.co/hdc-plus/api/v1/interpreter";
 
-        ServiceClient client = new ServiceClient(cookie);
+        String tokenUrl = System.getenv("TOKEN_URL");        // <-- te falta este dato
+        String clientId = System.getenv("CLIENT_ID");
+        String clientSecret = System.getenv("CLIENT_SECRET");
+        String scope = System.getenv("SCOPE");               // opcional
+
+        var http = java.net.http.HttpClient.newHttpClient();
+        var mapperTmp = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        OAuth2ClientCredentials tokenProvider = new OAuth2ClientCredentials(
+                http, mapperTmp, tokenUrl, clientId, clientSecret, scope
+        );
+
+        ServiceClient client = new ServiceClient(cookie, tokenProvider);
         ObjectMapper mapper = client.mapper();
 
         // 1) Cargar entradas (múltiples filas)
