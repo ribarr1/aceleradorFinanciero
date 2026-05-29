@@ -268,7 +268,7 @@ public class Engine {
                     if (expectedUpper.contains("CONTMORA30")) {
                         caracter = '1';
                     }
-                    else if (expectedUpper.contains("CONTMORA60")) {
+                    else if (expectedUpper.contains("CONTMORA60") ) {
                         caracter = '2';
                     }
                     else if (expectedUpper.contains("CONTMORA90")) {
@@ -283,6 +283,7 @@ public class Engine {
                     else if (expectedUpper.contains("ULT6")) {
                         factor12 = 6;
                     }
+
                     meses = monthsOnlyDifference(report, it, pickMonths); // report + item
                     desc = (int) (factor12 - meses);
                     vector = JsonUtils.findFirstText(it, "businessBehaviourVectorProduct");
